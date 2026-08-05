@@ -1,0 +1,20 @@
+# Convenience wrapper: `docker compose run --rm test` builds the image and
+# runs the GymLogCore test suite. `docker compose run --rm dev` drops into a
+# shell with the live source mounted for iterative work.
+services:
+  test:
+    build: .
+    image: gymlog-core
+
+  dev:
+    build: .
+    image: gymlog-core
+    command: bash
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./CoreLogic:/app/CoreLogic
+      - corelogic-build:/app/CoreLogic/.build
+
+volumes:
+  corelogic-build:

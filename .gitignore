@@ -1,0 +1,12 @@
+# Swift Package Manager
+.build/
+Package.resolved
+
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# OS
+.DS_Store
+Thumbs.db

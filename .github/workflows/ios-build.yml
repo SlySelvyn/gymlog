@@ -28,14 +28,18 @@ jobs:
 
       - name: Build for iOS Simulator
         run: |
-          set -o pipefail
           xcodebuild build \
             -project GymLog.xcodeproj \
             -scheme GymLog \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
-            | tail -100
+            > build.log 2>&1 \
+            || { echo "=== COMPILE ERRORS ==="; grep -E "error:" -A 3 build.log; exit 1; }
+          tail -5 build.log
 
-      - name: Upload build log on failure
+      - name: Upload full build log
         if: failure()
-        run: echo "Build failed — full errors are in the step output above."
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: build.log

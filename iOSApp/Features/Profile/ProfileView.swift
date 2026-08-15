@@ -39,7 +39,7 @@ struct ProfileView: View {
                     }
                 }
 
-                Section("Voice logging") {
+                Section {
                     Picker("Action Button", selection: $actionButtonMode) {
                         Text("Open app & listen").tag("openAndListen")
                         Text("Siri phrase").tag("siriPhrase")
@@ -48,11 +48,13 @@ struct ProfileView: View {
                     Toggle("Allow weight-only sets", isOn: $allowWeightOnly)
                     Stepper("Rest cap: \(restCap / 60) min",
                             value: $restCap, in: 120...1800, step: 60)
+                } header: {
+                    Text("Voice logging")
                 } footer: {
                     Text("Assign the “Log a Set” shortcut to the Action Button in iOS Settings → Action Button. Confirm mode shows the parsed set before saving; otherwise sets auto-commit with an easy Undo.")
                 }
 
-                Section("Your data") {
+                Section {
                     Button {
                         exportURL = writeExport(ExportService.markdown(coordinator.history,
                                                                        displayUnit: coordinator.displayUnit),
@@ -71,6 +73,8 @@ struct ProfileView: View {
                             Label("Share export", systemImage: "square.and.arrow.up")
                         }
                     }
+                } header: {
+                    Text("Your data")
                 } footer: {
                     Text("All data lives on this device, encrypted at rest. Exports contain every logged set.")
                 }

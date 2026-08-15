@@ -1,0 +1,41 @@
+# Builds the iOS app with real Xcode against the iOS Simulator SDK on a cloud
+# macOS runner — the closest thing to an "Xcode emulator" available from a
+# Windows dev machine.
+#
+# Manual trigger only (workflow_dispatch): this repo is private and macOS
+# minutes bill at 10x, so runs are spent deliberately — Actions tab → this
+# workflow → "Run workflow". The Linux Docker workflow covers every push.
+name: iOS build (Xcode + Simulator SDK)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project GymLog.xcodeproj \
+            -scheme GymLog \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -100
+
+      - name: Upload build log on failure
+        if: failure()
+        run: echo "Build failed — full errors are in the step output above."

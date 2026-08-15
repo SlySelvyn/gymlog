@@ -1,0 +1,41 @@
+# XcodeGen spec — generates GymLog.xcodeproj so the iOS app builds headlessly
+# (CI macOS runners) and reproducibly on any Mac, with no .xcodeproj in git.
+#   brew install xcodegen && xcodegen generate
+name: GymLog
+options:
+  bundleIdPrefix: com.slyselvyn
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  GymLogCore:
+    path: CoreLogic
+
+targets:
+  GymLog:
+    type: application
+    platform: iOS
+    sources:
+      - iOSApp
+    dependencies:
+      - package: GymLogCore
+    info:
+      path: iOSApp/Info.plist
+      properties:
+        CFBundleDisplayName: GymLog
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Spec §7.3: on-device speech; both strings required or the app
+        # crashes at first mic/speech permission request.
+        NSMicrophoneUsageDescription: >-
+          GymLog listens only while the mic button is held so you can log a
+          set by voice.
+        NSSpeechRecognitionUsageDescription: >-
+          GymLog transcribes your set on-device; audio never leaves your
+          phone.
+    settings:
+      base:
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO

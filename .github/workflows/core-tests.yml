@@ -1,0 +1,21 @@
+# Runs the GymLogCore test suite inside the project's Docker image on every
+# push — same container a developer runs locally, so CI green means the
+# Dockerfile and the 38-test corpus both work.
+name: Core tests (Docker)
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t gymlog-core .
+      - name: Run test suite
+        run: docker run --rm gymlog-core

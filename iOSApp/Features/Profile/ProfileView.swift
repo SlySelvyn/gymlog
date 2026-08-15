@@ -78,6 +78,14 @@ struct ProfileView: View {
                          : "Exports include all \(coordinator.history.count) finished workout\(coordinator.history.count == 1 ? "" : "s"). All data lives on this device, encrypted at rest.")
                 }
 
+                Section("Help") {
+                    NavigationLink {
+                        VoiceGuideView()
+                    } label: {
+                        Label("Voice logging guide", systemImage: "questionmark.circle")
+                    }
+                }
+
                 Section("About") {
                     LabeledContent("Version",
                                    value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1")

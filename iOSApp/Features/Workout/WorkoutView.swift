@@ -173,6 +173,15 @@ struct WorkoutView: View {
                         .multilineTextAlignment(.center)
                         .padding(.top, 10)
 
+                    NavigationLink {
+                        VoiceGuideView()
+                    } label: {
+                        Text("How voice logging works →")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(GymTheme.accent)
+                    }
+                    .padding(.top, 8)
+
                     Button("Start empty workout") {
                         coordinator.startWorkout(title: "Untitled Workout")
                     }

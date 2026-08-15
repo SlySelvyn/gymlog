@@ -427,7 +427,9 @@ struct ManualSetSheet: View {
                     }
                 }
             }
-            .searchable(text: $search, prompt: "Search exercises")
+            .searchable(text: $search,
+                        placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "Search exercises")
             .navigationTitle("Add set")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

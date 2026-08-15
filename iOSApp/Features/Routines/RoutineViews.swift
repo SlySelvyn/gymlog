@@ -205,7 +205,9 @@ struct ExercisePickerView: View {
                 }
                 .foregroundStyle(.primary)
             }
-            .searchable(text: $search, prompt: "Search exercises")
+            .searchable(text: $search,
+                        placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "Search exercises")
             .navigationTitle("Pick exercise")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

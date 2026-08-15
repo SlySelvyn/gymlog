@@ -18,7 +18,7 @@ struct ProfileView: View {
     @AppStorage("actionButtonMode") private var actionButtonMode = "openAndListen"
     @AppStorage("allowWeightOnlyDraft") private var allowWeightOnly = false
 
-    @State private var exportURL: URL?
+    @State private var shareItem: ExportItem?
 
     var body: some View {
         NavigationStack {
@@ -56,27 +56,26 @@ struct ProfileView: View {
 
                 Section {
                     Button {
-                        exportURL = writeExport(ExportService.markdown(coordinator.history,
+                        shareItem = writeExport(ExportService.markdown(coordinator.history,
                                                                        displayUnit: coordinator.displayUnit),
-                                                filename: "gymlog-export.md")
+                                                filename: "gymlog-export.md").map(ExportItem.init)
                     } label: {
                         Label("Export as Markdown", systemImage: "doc.text")
                     }
+                    .disabled(coordinator.history.isEmpty)
                     Button {
-                        exportURL = writeExport(ExportService.csv(coordinator.history),
-                                                filename: "gymlog-export.csv")
+                        shareItem = writeExport(ExportService.csv(coordinator.history),
+                                                filename: "gymlog-export.csv").map(ExportItem.init)
                     } label: {
                         Label("Export as CSV", systemImage: "tablecells")
                     }
-                    if let exportURL {
-                        ShareLink(item: exportURL) {
-                            Label("Share export", systemImage: "square.and.arrow.up")
-                        }
-                    }
+                    .disabled(coordinator.history.isEmpty)
                 } header: {
                     Text("Your data")
                 } footer: {
-                    Text("All data lives on this device, encrypted at rest. Exports contain every logged set.")
+                    Text(coordinator.history.isEmpty
+                         ? "Finish a workout first — exports include every set from your finished workouts. All data lives on this device, encrypted at rest."
+                         : "Exports include all \(coordinator.history.count) finished workout\(coordinator.history.count == 1 ? "" : "s"). All data lives on this device, encrypted at rest.")
                 }
 
                 Section("About") {
@@ -86,6 +85,10 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Profile")
+            .sheet(item: $shareItem) { item in
+                ActivityShareSheet(url: item.url)
+                    .presentationDetents([.medium, .large])
+            }
             .onChange(of: unitsRaw) { syncPrefsToICloudKV() }
             .onChange(of: theme) { syncPrefsToICloudKV() }
             .onChange(of: actionButtonMode) { syncPrefsToICloudKV() }
@@ -113,4 +116,23 @@ struct ProfileView: View {
         kv.set(actionButtonMode, forKey: "actionButtonMode")
         kv.synchronize()
     }
+}
+
+/// Identifiable wrapper so .sheet(item:) presents the share sheet the moment
+/// an export button writes its file.
+struct ExportItem: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}
+
+/// SwiftUI has no way to programmatically present ShareLink, so exports wrap
+/// UIActivityViewController directly.
+struct ActivityShareSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }

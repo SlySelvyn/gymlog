@@ -21,11 +21,28 @@ final class SpeechService: NSObject, ObservableObject {
     @Published private(set) var state: State = .idle
     @Published private(set) var liveTranscript: String = ""
 
+    enum SpeechError: LocalizedError {
+        case recognizerUnavailable
+        case noAudioInput
+
+        var errorDescription: String? {
+            switch self {
+            case .recognizerUnavailable:
+                return "Speech recognition isn't available here"
+            case .noAudioInput:
+                return "No microphone on this device"
+            }
+        }
+    }
+
     private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
     private var silenceTimer: Timer?
+    /// Guards inputNode access in finish(): touching the input node when no tap
+    /// was ever installed raises an ObjC exception on mic-less simulators.
+    private var tapInstalled = false
 
     /// Trailing silence before auto-stop (spec: ~1.2s).
     var silenceWindow: TimeInterval = 1.2
@@ -50,6 +67,7 @@ final class SpeechService: NSObject, ObservableObject {
 
     func startListening() throws {
         guard state != .listening else { return }
+        guard let recognizer, recognizer.isAvailable else { throw SpeechError.recognizerUnavailable }
         liveTranscript = ""
 
         let session = AVAudioSession.sharedInstance()
@@ -65,11 +83,18 @@ final class SpeechService: NSObject, ObservableObject {
 
         let input = audioEngine.inputNode
         let format = input.outputFormat(forBus: 0)
+        // Mic-less environments (Simulator, Appetize) report a 0 Hz format;
+        // installTap would then raise an ObjC exception `try` cannot catch.
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            self.request = nil
+            throw SpeechError.noAudioInput
+        }
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             self?.request?.append(buffer)
         }
+        tapInstalled = true
 
-        task = recognizer?.recognitionTask(with: request) { [weak self] result, error in
+        task = recognizer.recognitionTask(with: request) { [weak self] result, error in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 if let result {
@@ -101,7 +126,10 @@ final class SpeechService: NSObject, ObservableObject {
         guard state == .listening else { return }
         silenceTimer?.invalidate()
         audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
+        if tapInstalled {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            tapInstalled = false
+        }
         request?.endAudio()
         task?.cancel()
         task = nil; request = nil

@@ -268,6 +268,8 @@ struct VoiceCaptureView: View {
         do {
             try speech.startListening()
             withAnimation(.snappy) { phase = .listening }
+        } catch let e as SpeechService.SpeechError {
+            phase = .error(message: e.errorDescription ?? "Couldn't start the mic", heard: nil)
         } catch {
             phase = .error(message: "Couldn't start the mic — try again", heard: nil)
         }

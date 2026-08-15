@@ -89,6 +89,9 @@ final class SpeechService: NSObject, ObservableObject {
             self.request = nil
             throw SpeechError.noAudioInput
         }
+        // Defensive: installing over an existing tap is an uncatchable ObjC
+        // exception; removing a nonexistent tap is a documented no-op.
+        input.removeTap(onBus: 0)
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             self?.request?.append(buffer)
         }
@@ -107,7 +110,12 @@ final class SpeechService: NSObject, ObservableObject {
         }
 
         audioEngine.prepare()
-        try audioEngine.start()
+        do {
+            try audioEngine.start()
+        } catch {
+            finish()   // releases the tap/session/task so a retry can't double-install
+            throw error
+        }
         state = .listening
         resetSilenceTimer()
     }
@@ -122,10 +130,14 @@ final class SpeechService: NSObject, ObservableObject {
         }
     }
 
+    /// Idempotent teardown: releases whatever capture resources exist, in any
+    /// state. Dismissing the sheet mid-permission-request, after a failed
+    /// start, or mid-listening all funnel through here safely.
     private func finish() {
-        guard state == .listening else { return }
+        let wasListening = state == .listening
         silenceTimer?.invalidate()
-        audioEngine.stop()
+        silenceTimer = nil
+        if audioEngine.isRunning { audioEngine.stop() }
         if tapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
             tapInstalled = false
@@ -133,7 +145,9 @@ final class SpeechService: NSObject, ObservableObject {
         request?.endAudio()
         task?.cancel()
         task = nil; request = nil
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         state = .idle
+        guard wasListening else { return }
         let final = liveTranscript
         if !final.isEmpty { onFinalTranscript?(final) }
     }

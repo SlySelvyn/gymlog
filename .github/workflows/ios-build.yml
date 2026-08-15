@@ -32,10 +32,24 @@ jobs:
             -project GymLog.xcodeproj \
             -scheme GymLog \
             -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             > build.log 2>&1 \
             || { echo "=== COMPILE ERRORS ==="; grep -E "error:" -A 3 build.log; exit 1; }
           tail -5 build.log
+
+      # Universal (arm64 + x86_64) simulator bundle. Download this artifact,
+      # then upload the zip to appetize.io to run GymLog in a browser.
+      - name: Package simulator .app for online simulators
+        run: |
+          cd DerivedData/Build/Products/Debug-iphonesimulator
+          zip -qry GymLog-simulator-app.zip GymLog.app
+
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: GymLog-simulator-app
+          path: DerivedData/Build/Products/Debug-iphonesimulator/GymLog-simulator-app.zip
 
       - name: Upload full build log
         if: failure()

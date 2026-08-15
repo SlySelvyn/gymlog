@@ -58,6 +58,21 @@ docker compose run --rm dev        # interactive shell, live-mounted source
 Note: only `CoreLogic/` is containerizable — the `iOSApp/` target still
 requires Xcode on a Mac (or the WSL2 + xtool route in `WINDOWS_SETUP.md`).
 
+On this Windows PC, Docker runs inside WSL2 Ubuntu (`wsl -u sly`), not on
+Windows itself — run the commands above from a WSL shell.
+
+## CI — verification without a Mac
+
+| Workflow | Trigger | What it proves |
+|---|---|---|
+| `core-tests.yml` (ubuntu) | every push / PR | Docker image builds; all 38 core tests pass |
+| `ios-build.yml` (macos-15) | manual: Actions → Run workflow | the app compiles with real Xcode against the iOS Simulator SDK |
+
+The iOS workflow generates `GymLog.xcodeproj` on the runner from
+`project.yml` (XcodeGen) — the project file is never committed. It is
+dispatch-only because this repo is private and macOS minutes bill at 10×;
+run it when iOS-layer code changes.
+
 ## Building the app itself
 
 Two routes — both detailed step-by-step in `WINDOWS_SETUP.md`:
